@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>WebGPU Autoscale Crash Test</title>
+<title>WebGPU AutoScale Extreme</title>
 <style>
 body { margin:0; overflow:hidden; background:black; }
 #fps {
@@ -46,6 +46,10 @@ ctx.configure({ device, format });
 
 let loops = 50;
 
+// riferimento agli elementi DOM
+const fpsEl = document.getElementById("fps");
+const infoEl = document.getElementById("info");
+
 function makePipeline() {
   const shader = `
 @vertex fn vs(@builtin(vertex_index) i:u32)
@@ -79,24 +83,27 @@ function makePipeline() {
 
 let pipeline = makePipeline();
 
-// autoscale
+// autoscale aggressivo: +500 ogni secondo
 setInterval(() => {
-  loops += 50;
+  loops += 500;
   pipeline = makePipeline();
-  info.textContent = `loops: ${loops}`;
-}, 2000);
+  infoEl.textContent = `loops: ${loops}`;
+}, 1000);
 
-// FPS
+// FPS tracking
 let last = performance.now(), frames = 0;
+let currentFPS = 60;
 
 function frame(t) {
   frames++;
   if (t - last >= 1000) {
-    fps.textContent = (frames * 1000 / (t - last)).toFixed(1) + " FPS";
+    currentFPS = frames * 1000 / (t - last);
+    fpsEl.textContent = currentFPS.toFixed(1) + " FPS";
     frames = 0;
     last = t;
   }
 
+  // comando render
   const enc = device.createCommandEncoder();
   const pass = enc.beginRenderPass({
     colorAttachments: [{
@@ -113,9 +120,8 @@ function frame(t) {
 
   requestAnimationFrame(frame);
 }
+
 frame();
 </script>
 </body>
 </html>
-
-}
