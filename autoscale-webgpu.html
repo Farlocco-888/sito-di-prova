@@ -83,9 +83,9 @@ function makePipeline() {
 
 let pipeline = makePipeline();
 
-// autoscale aggressivo: +500 ogni secondo
+// autoscale aggressivo: +5000 ogni secondo
 setInterval(() => {
-  loops += 500;
+  loops += 5000;
   pipeline = makePipeline();
   infoEl.textContent = `loops: ${loops}`;
 }, 1000);
