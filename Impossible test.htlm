@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>WebGPU Impossible Static</title>
+<style>
+body { margin:0; overflow:hidden; background:black; }
+#fps {
+  position:fixed;
+  top:8px;
+  right:8px;
+  color:#ff00ff;
+  font:14px monospace;
+}
+</style>
+</head>
+<body>
+<div id="fps">FPS</div>
+<canvas id="c"></canvas>
+
+<script type="module">
+const adapter = await navigator.gpu.requestAdapter();
+const device = await adapter.requestDevice();
+
+const canvas = document.getElementById("c");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+const ctx = canvas.getContext("webgpu");
+const format = navigator.gpu.getPreferredCanvasFormat();
+ctx.configure({ device, format });
+
+const shader = `
+@vertex fn vs(@builtin(vertex_index) i:u32)
+-> @builtin(position) vec4<f32> {
+  var p = array<vec2<f32>,6>(
+    vec2<f32>(-1,-1), vec2<f32>(1,-1), vec2<f32>(-1,1),
+    vec2<f32>(-1,1), vec2<f32>(1,-1), vec2<f32>(1,1)
+  );
+  return vec4<f32>(p[i],0,1);
+}
+
+@fragment fn fs(@builtin(position) pos:vec4<f32>)
+-> @location(0) vec4<f32> {
+  var c = vec3<f32>(pos.xy / 600.0, 0.5);
+  for (var i=0;i<500;i++) {
+    c = sin(c * f32(i)) * 0.5 + 0.5;
+  }
+  return vec4<f32>(c,1.0);
+}`;
+
+const pipeline = device.createRenderPipeline({
+  layout:"auto",
+  vertex:{ module:device.createShaderModule({code:shader}), entryPoint:"vs" },
+  fragment:{ module:device.createShaderModule({code:shader}), entryPoint:"fs",
+    targets:[{format}] },
+  primitive:{ topology:"triangle-list" }
+});
+
+let last=performance.now(),frames=0;
+function frame(t){
+  frames++;
+  if(t-last>=1000){
+    fps.textContent=(frames*1000/(t-last)).toFixed(1)+" FPS";
+    frames=0; last=t;
+  }
+
+  const enc=device.createCommandEncoder();
+  const pass=enc.beginRenderPass({
+    colorAttachments:[{
+      view:ctx.getCurrentTexture().createView(),
+      loadOp:"clear", storeOp:"store",
+      clearValue:{r:0,g:0,b:0,a:1}
+    }]
+  });
+  pass.setPipeline(pipeline);
+  pass.draw(6);
+  pass.end();
+  device.queue.submit([enc.finish()]);
+  requestAnimationFrame(frame);
+}
+frame();
+</script>
+</body>
+</html>
